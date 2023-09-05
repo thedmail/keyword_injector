@@ -9,39 +9,83 @@ import java.io.OutputStreamWriter
 
 fun main(args: Array<String>) {
 
-  val docRoot="/google/src/cloud/dmail/tag-stripper/google3/third_party/devsite/android/en/codelabs/"
-  val fileList=getCodeLabList(docRoot)
+  val docRoot="/google/src/cloud/dmail/codelab-faceted-search/google3/third_party/devsite/android/en/codelabs"
+  val keywordMap=getKeywordMap(docRoot)
+  writeKeywords(keywordMap)
   println()
-  removeTags(fileList)
 }
 //////////////////////////////////////////////////////////////////
-fun getCodeLabList(docRoot:String):MutableList<String> {
-  println("Getting codelab list.")
-  val fileListFile =
-    File(docRoot.plus("/codelab_list.txt"))
-  val tagListFile=File(docRoot.plus("codelab_tags.txt"))
-  val fileTree = File(docRoot).walkTopDown()
+fun getKeywordMap(docRoot:String):MutableMap<String,String> {
+  println("Getting keyword map.")
+  val dataFile =
+    File(docRoot.plus("/keyword_map.csv"))
 
-  // Create a string List to store all names of .md files
-  val fileList = mutableListOf<String>()
+  // Create a string List to store all names of the codelab-and-keyword maps
+  val fileInfo = mutableListOf<String>()
+  val keywordMap= mutableMapOf<String,String>()
 
-  // Iterate through the filetree under .../android/en/codelabs, and store all filenames
-  // with ".md" in a String array.
+  // Read the list into fileInfo
 
-  for (file in fileTree) {
-    if (!file.name.endsWith(".md")) continue
-    if (file.name.startsWith("_")) continue
-    fileList.add(file.canonicalPath)
+  val inputStream = FileInputStream(dataFile)
+  val reader = BufferedReader(InputStreamReader(inputStream))
+
+  // read in the contents of the file, line-by-line...
+  while (reader.ready()) {
+    val line = reader.readLine()
+    // If there are redundant delimiters (i.e., trailing commas), remove them.
+    if (line.endsWith(",")) {
+        val trailingCommas=line.toCharArray()
+        var counter=0
+        var position=line.length-1
+      while (trailingCommas[position]==',') {
+        counter++
+        position--
+      }
+      val removeTrailingCommas=line.dropLast(counter)
+      fileInfo.add(removeTrailingCommas)
+    } else
+      fileInfo.add(line)
   }
 
-  // And then write them to a list stored in the file named in fileListFile (declared up near
-  // the top of this function.
-  val writer = FileWriter(fileListFile)
-  for (file in fileList)
-    writer.write(file + "\n")
-  writer.close()
-  return fileList
+  // split each line into a file-and-keyword map
+  for (file in fileInfo) {
+    keywordMap.put(file.substringBefore(",ignore"),file.substringAfter("ignore,"))
+  }
+  println()
+  return keywordMap
 }
+//////////////////////////////////////////////////////////////////
+fun writeKeywords (keywordMap:MutableMap<String,String>) {
+  // For each file in the map...
+  for (file in keywordMap.keys) {
+    val fileContents= mutableListOf<String>()
+    // ...read in the contents of the file, line-by-line...
+    val inputStream = FileInputStream(file)
+    val reader = BufferedReader(InputStreamReader(inputStream))
+    // (but skip a keywords line if it's already there).
+    while (reader.ready()) {
+      val line = reader.readLine()
+      if (line.startsWith("keywords:")) continue
+      fileContents.add(line)
+    }
+    // ...and now spit the contents back out into the same file, but
+    // with a new "keywords" line. It comes right after the "id:" element
+    // because there's always one of those, and it's easiest to have a consistent
+    // thing to anchor to, so to speak.
+      val writer=FileWriter(file)
+        for (line in fileContents) {
+          writer.write("$line\n")
+          if (line.startsWith("id:")) {
+            writer.write("keywords: ${keywordMap.get(file)}\n")
+          }
+      }
+        writer.close()
+    }
+
+  }
+
+/*
+
 //////////////////////////////////////////////////////////////////
 fun removeTags(fileList: MutableList<String>) {
   println("Removing deprecated attributes...")
@@ -83,4 +127,4 @@ fun removeTags(fileList: MutableList<String>) {
     }
     writer.close()
   }
-}
+} */
