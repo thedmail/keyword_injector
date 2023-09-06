@@ -2,6 +2,7 @@ import java.io.BufferedReader
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.FileWriter
 import java.io.InputStreamReader
@@ -11,7 +12,9 @@ fun main(args: Array<String>) {
 
   val docRoot="/google/src/cloud/dmail/codelab-faceted-search/google3/third_party/devsite/android/en/codelabs"
   val keywordMap=getKeywordMap(docRoot)
-  writeKeywords(keywordMap)
+  for (record in keywordMap) {
+    writeKeywords(record)
+  }
   println()
 }
 //////////////////////////////////////////////////////////////////
@@ -55,30 +58,29 @@ fun getKeywordMap(docRoot:String):MutableMap<String,String> {
   return keywordMap
 }
 //////////////////////////////////////////////////////////////////
-fun writeKeywords (keywordMap:MutableMap<String,String>) {
-  // For each file in the map...
-  for (file in keywordMap.keys) {
-    val fileContents= mutableListOf<String>()
-    // ...read in the contents of the file, line-by-line...
-    val inputStream = FileInputStream(file)
-    val reader = BufferedReader(InputStreamReader(inputStream))
-    // (but skip a keywords line if it's already there).
-    while (reader.ready()) {
-      val line = reader.readLine()
-      if (line.startsWith("keywords:")) continue
-      fileContents.add(line)
-    }
-    // ...and now spit the contents back out into the same file, but
-    // with a new "keywords" line. It comes right after the "id:" element
-    // because there's always one of those, and it's easiest to have a consistent
-    // thing to anchor to, so to speak.
-      val writer=FileWriter(file)
+fun writeKeywords (record:MutableMap<String,String>) {
+    // For each file in the map...
+        val fileContents = mutableListOf<String>()
+        // ...read in the contents of the file, line-by-line...
+        val inputStream = FileInputStream(record)
+        val reader = BufferedReader(InputStreamReader(inputStream))
+        // (but skip a keywords line if it's already there).
+        while (reader.ready()) {
+          val line = reader.readLine()
+          if (line.startsWith("keywords:")) continue
+          fileContents.add(line)
+        }
+        // ...and now spit the contents back out into the same file, but
+        // with a new "keywords" line. It comes right after the "id:" element
+        // because there's always one of those, and it's easiest to have a consistent
+        // thing to anchor to, so to speak.
+        val writer = FileWriter(file)
         for (line in fileContents) {
           writer.write("$line\n")
           if (line.startsWith("id:")) {
             writer.write("keywords: ${keywordMap.get(file)}\n")
           }
-      }
+        }
         writer.close()
     }
 
