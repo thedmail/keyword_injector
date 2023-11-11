@@ -29,7 +29,6 @@ fun getKeywordMap(docRoot:String):MutableMap<String,String> {
   val keywordMap= mutableMapOf<String,String>()
 
   // Read the list into fileInfo
-
   val inputStream = FileInputStream(dataFile)
   val reader = BufferedReader(InputStreamReader(inputStream))
 
