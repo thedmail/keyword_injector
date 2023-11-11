@@ -7,6 +7,7 @@ import java.io.FileOutputStream
 import java.io.FileWriter
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
+import java.lang.StringBuilder
 
 fun main(args: Array<String>) {
 
@@ -97,13 +98,26 @@ fun htmlKeywords(record: MutableMap.MutableEntry<String, String>) {
   // For each file in the map...
   val fileContents = mutableListOf<String>()
   val filename=record.key
+  // Split up the value into discrete elements, enclose each one in quote marks, and then
+  // re-add the delimiting commas.
+
+  val splitValue=record.value.toCharArray()
+  val filenameWithQuotes=StringBuilder()
+  filenameWithQuotes.append("\"")
+    for (character in splitValue) {
+      if (character!=',')
+        filenameWithQuotes.append(character)
+      else filenameWithQuotes.append("\",\"")
+    }
+  filenameWithQuotes.append("\"")
+
   // ...read in the contents of the file, line-by-line...
   val inputStream = FileInputStream(filename)
   val reader = BufferedReader(InputStreamReader(inputStream))
   // (but skip a keywords line if it's already there).
   while (reader.ready()) {
     val line = reader.readLine()
-    if (line.startsWith("keywords:")) continue
+    if (line.contains("<meta name=\"keywords\"")) continue
     fileContents.add(line)
   }
   // ...and now spit the contents back out into the same file, but
@@ -113,8 +127,8 @@ fun htmlKeywords(record: MutableMap.MutableEntry<String, String>) {
   val writer = FileWriter(filename)
   for (line in fileContents) {
     writer.write("$line\n")
-    if (line.startsWith("id:")) {
-      writer.write("keywords: ${record.value}\n")
+    if (line.endsWith("</title>")) {
+      writer.write("<meta name=\"keywords\" value='${filenameWithQuotes}'/>\n")
     }
   }
   writer.close()
