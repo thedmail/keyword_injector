@@ -2,16 +2,20 @@ import java.io.BufferedReader
 import java.io.BufferedWriter
 import java.io.File
 import java.io.FileInputStream
+import java.io.FileNotFoundException
 import java.io.FileOutputStream
 import java.io.FileWriter
 import java.io.InputStreamReader
 import java.io.OutputStreamWriter
+import java.lang.StringBuilder
 
 fun main(args: Array<String>) {
 
   val docRoot="/google/src/cloud/dmail/codelab-faceted-search/google3/third_party/devsite/android/en/codelabs"
   val keywordMap=getKeywordMap(docRoot)
-  writeKeywords(keywordMap)
+  for (record in keywordMap) {
+    writeKeywords(record)
+  }
   println()
 }
 //////////////////////////////////////////////////////////////////
@@ -25,7 +29,6 @@ fun getKeywordMap(docRoot:String):MutableMap<String,String> {
   val keywordMap= mutableMapOf<String,String>()
 
   // Read the list into fileInfo
-
   val inputStream = FileInputStream(dataFile)
   val reader = BufferedReader(InputStreamReader(inputStream))
 
@@ -55,36 +58,84 @@ fun getKeywordMap(docRoot:String):MutableMap<String,String> {
   return keywordMap
 }
 //////////////////////////////////////////////////////////////////
-fun writeKeywords (keywordMap:MutableMap<String,String>) {
-  // For each file in the map...
-  for (file in keywordMap.keys) {
-    val fileContents= mutableListOf<String>()
-    // ...read in the contents of the file, line-by-line...
-    val inputStream = FileInputStream(file)
-    val reader = BufferedReader(InputStreamReader(inputStream))
-    // (but skip a keywords line if it's already there).
-    while (reader.ready()) {
-      val line = reader.readLine()
-      if (line.startsWith("keywords:")) continue
-      fileContents.add(line)
-    }
-    // ...and now spit the contents back out into the same file, but
-    // with a new "keywords" line. It comes right after the "id:" element
-    // because there's always one of those, and it's easiest to have a consistent
-    // thing to anchor to, so to speak.
-      val writer=FileWriter(file)
+fun writeKeywords (record:MutableMap.MutableEntry<String,String>) {
+  if (record.key.endsWith(".md"))
+    mdKeywords(record)
+  if (record.key.endsWith(".html"))
+    htmlKeywords(record)
+}
+//////////////////////////////////////////////////////////////////
+
+fun mdKeywords (record:MutableMap.MutableEntry<String,String>) {
+    // For each file in the map...
+        val fileContents = mutableListOf<String>()
+        val filename=record.key
+        // ...read in the contents of the file, line-by-line...
+        val inputStream = FileInputStream(filename)
+        val reader = BufferedReader(InputStreamReader(inputStream))
+        // (but skip a keywords line if it's already there).
+        while (reader.ready()) {
+          val line = reader.readLine()
+          if (line.startsWith("keywords:")) continue
+          fileContents.add(line)
+        }
+        // ...and now spit the contents back out into the same file, but
+        // with a new "keywords" line. It comes right after the "id:" element
+        // because there's always one of those, and it's easiest to have a consistent
+        // thing to anchor to, so to speak.
+        val writer = FileWriter(filename)
         for (line in fileContents) {
           writer.write("$line\n")
           if (line.startsWith("id:")) {
-            writer.write("keywords: ${keywordMap.get(file)}\n")
+            writer.write("keywords: ${record.value}\n")
           }
-      }
+        }
         writer.close()
     }
+//////////////////////////////////////////////////////////////////
+fun htmlKeywords(record: MutableMap.MutableEntry<String, String>) {
+  // For each file in the map...
+  val fileContents = mutableListOf<String>()
+  val filename=record.key
+  // Split up the value into discrete elements, enclose each one in quote marks, and then
+  // re-add the delimiting commas.
 
+  val splitValue=record.value.toCharArray()
+  val filenameWithQuotes=StringBuilder()
+  filenameWithQuotes.append("\"")
+    for (character in splitValue) {
+      if (character!=',')
+        filenameWithQuotes.append(character)
+      else filenameWithQuotes.append("\",\"")
+    }
+  filenameWithQuotes.append("\"")
+
+  // ...read in the contents of the file, line-by-line...
+  val inputStream = FileInputStream(filename)
+  val reader = BufferedReader(InputStreamReader(inputStream))
+  // (but skip a keywords line if it's already there).
+  while (reader.ready()) {
+    val line = reader.readLine()
+    if (line.contains("<meta name=\"keywords\"")) continue
+    fileContents.add(line)
   }
+  // ...and now spit the contents back out into the same file, but
+  // with a new "keywords" line. It comes right after the "id:" element
+  // because there's always one of those, and it's easiest to have a consistent
+  // thing to anchor to, so to speak.
+  val writer = FileWriter(filename)
+  for (line in fileContents) {
+    writer.write("$line\n")
+    if (line.endsWith("</title>")) {
+      writer.write("<meta name=\"keywords\" value='${filenameWithQuotes}'/>\n")
+    }
+  }
+  writer.close()
+}
+
 
 /*
+
 
 //////////////////////////////////////////////////////////////////
 fun removeTags(fileList: MutableList<String>) {
