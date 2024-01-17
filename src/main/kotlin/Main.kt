@@ -11,7 +11,7 @@ import java.lang.StringBuilder
 
 fun main(args: Array<String>) {
 
-  val docRoot="/google/src/cloud/dmail/codelab-faceted-search/google3/third_party/devsite/android/en/codelabs"
+  val docRoot = System.getProperty("user.dir")
   val keywordMap=getKeywordMap(docRoot)
   for (record in keywordMap) {
     writeKeywords(record)
@@ -86,7 +86,7 @@ fun mdKeywords (record:MutableMap.MutableEntry<String,String>) {
         val writer = FileWriter(filename)
         for (line in fileContents) {
           writer.write("$line\n")
-          if (line.startsWith("id:")) {
+          if (line.startsWith("Book:")) {
             writer.write("keywords: ${record.value}\n")
           }
         }
@@ -127,7 +127,7 @@ fun htmlKeywords(record: MutableMap.MutableEntry<String, String>) {
   for (line in fileContents) {
     writer.write("$line\n")
     if (line.endsWith("</title>")) {
-      writer.write("<meta name=\"keywords\" value='${filenameWithQuotes}'/>\n")
+      writer.write("    <meta name=\"keywords\" value='${filenameWithQuotes}'/>\n")
     }
   }
   writer.close()
